@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>职工养老金测算工具</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg:#0a0f1a; --card:#111827; --cardAlt:#1a2236;
+    --accent:#f59e0b; --accentDim:#92610a;
+    --text:#e5e7eb; --dim:#6b7280; --border:#1f2937;
+    --green:#22c55e; --red:#ef4444; --blue:#3b82f6;
+    --purple:#a78bfa; --cyan:#06b6d4; --orange:#fb923c;
+  }
+  body {
+    font-family: 'Noto Sans SC','PingFang SC',-apple-system,sans-serif;
+    background: var(--bg); color: var(--text); min-height:100vh; padding:20px 10px;
+  }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 {
+    font-size:24px; font-weight:700; text-align:center;
+    background: linear-gradient(135deg,var(--accent),#fbbf24);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  .subtitle { font-size:12px; color:var(--dim); text-align:center; margin-top:5px; }
+  .section {
+    background:var(--card); border-radius:14px; padding:18px;
+    margin-bottom:14px; border:1px solid var(--border);
+  }
+  .section-title { font-size:13px; font-weight:700; color:var(--accent); margin-bottom:14px; }
+  .grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;
+  }
+  .field-label { font-size:11px; color:var(--dim); margin-bottom:3px; }
+  .field-tip { color:var(--accentDim); margin-left:4px; font-size:10px; }
+  .field-row { display:flex; align-items:center; gap:4px; }
+  .field-input {
+    flex:1; background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:8px 10px; color:var(--text); font-size:14px; font-weight:600;
+    outline:none; width:100%; min-width:0;
+  }
+  .field-input:focus { border-color:var(--accent); }
+  .field-unit { font-size:12px; color:var(--dim); white-space:nowrap; }
+  .derived-box {
+    background:var(--cardAlt); border:1px solid var(--border); border-radius:8px;
+    padding:8px 10px; font-size:14px; font-weight:600; color:var(--accent);
+  }
+  .derived-sub { font-size:10px; color:var(--dim); font-weight:400; margin-left:6px; }
+  .info-bar {
+    background:var(--cardAlt); border-radius:10px; padding:10px 14px;
+    margin-bottom:14px; font-size:12px; color:var(--dim); line-height:1.8;
+    display:flex; flex-wrap:wrap; gap:4px 16px;
+  }
+  .note-bar {
+    background:var(--cardAlt); border-radius:10px; padding:10px 14px;
+    margin-bottom:12px; font-size:12px; color:var(--dim); line-height:1.8;
+    border-left:3px solid var(--accent);
+  }
+  table { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
+  th {
+    padding:11px 6px; text-align:right; color:var(--dim); font-weight:600;
+    font-size:11px; border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  th:first-child { text-align:left; }
+  td { padding:11px 6px; text-align:right; }
+  td:first-child { text-align:left; }
+  .td-sub { font-size:10px; color:var(--dim); font-weight:400; }
+  tr.row-even { background:var(--card); }
+  tr.row-odd { background:var(--cardAlt); }
+  tr.row-max { background:rgba(146,97,10,0.2); }
+  .th-green { color:var(--green)!important; font-size:12px!important; }
+  .th-orange { color:var(--orange)!important; font-size:12px!important; border-left:2px solid var(--accentDim); }
+  .td-orange { border-left:2px solid var(--accentDim); }
+  .formula-section {
+    background:var(--card); border-radius:14px; padding:16px 18px; margin-top:14px;
+    border:1px solid var(--border); font-size:12px; color:var(--dim); line-height:2;
+  }
+  .btn-reset {
+    background:var(--cardAlt); border:1px solid var(--border); border-radius:8px;
+    padding:8px 24px; color:var(--dim); font-size:12px; cursor:pointer; margin-top:16px;
+  }
+  .btn-reset:hover { border-color:var(--accent); color:var(--text); }
+  .footer { text-align:center; margin:14px 0 10px; font-size:11px; color:var(--dim); }
+  strong.c-text { color:var(--text); }
+  strong.c-accent { color:var(--accent); }
+  strong.c-green { color:var(--green); }
+  strong.c-orange { color:var(--orange); }
+  strong.c-blue { color:var(--blue); }
+  strong.c-purple { color:var(--purple); }
+  strong.c-cyan { color:var(--cyan); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>职工养老金测算工具</h1>
+  <div class="subtitle">填入你的实际参数 · 实时计算退休养老金</div>
+
+  <!-- 个人信息 -->
+  <div class="section" style="margin-top:22px">
+    <div class="section-title">📝 个人信息</div>
+    <div class="grid">
+      <div><div class="field-label">出生年份</div><div class="field-row"><input class="field-input" type="number" id="birthYear" value="1993"><span class="field-unit">年</span></div></div>
+      <div><div class="field-label">退休年龄 <span class="field-tip">延迟退休后</span></div><div class="field-row"><input class="field-input" type="number" id="retireAge" value="63"><span class="field-unit">岁</span></div></div>
+      <div><div class="field-label">当前年份</div><div class="field-row"><input class="field-input" type="number" id="currentYear" value="2026"><span class="field-unit">年</span></div></div>
+      <div><div class="field-label">已缴费年数 <span class="field-tip">过去累计</span></div><div class="field-row"><input class="field-input" type="number" step="0.1" id="pastYears" value="9.7"><span class="field-unit">年</span></div></div>
+      <div><div class="field-label">往年平均缴费指数 <span class="field-tip">查社保</span></div><div class="field-row"><input class="field-input" type="number" step="0.01" id="pastIndex" value="2.17"></div></div>
+      <div><div class="field-label">现有个人账户</div><div class="field-row"><input class="field-input" type="number" id="existAccount" value="147000"><span class="field-unit">元</span></div></div>
+    </div>
+  </div>
+
+  <!-- 未来缴费参数 -->
+  <div class="section">
+    <div class="section-title">🏙️ 未来缴费参数</div>
+    <div class="grid">
+      <div><div class="field-label">全省社平工资 <span class="field-tip">月均</span></div><div class="field-row"><input class="field-input" type="number" id="socAvg" value="7264"><span class="field-unit">元/月</span></div></div>
+      <div><div class="field-label">缴费档次 <span class="field-tip">60%=0.6</span></div><div class="field-row"><input class="field-input" type="number" step="0.1" id="futureIndex" value="0.6"></div></div>
+      <div><div class="field-label">缴费基数 <span class="field-tip" style="color:var(--accent)">自动计算</span></div><div class="derived-box" id="derivedBase">-</div></div>
+      <div><div class="field-label">灵活就业月缴费 <span class="field-tip" style="color:var(--accent)">自动计算</span></div><div class="derived-box" id="derivedFlex">-</div></div>
+      <div><div class="field-label">退休地计发基数 <span class="field-tip">沈阳8390</span></div><div class="field-row"><input class="field-input" type="number" id="jifaBase" value="8390"><span class="field-unit">元/月</span></div></div>
+      <div><div class="field-label">社平年增长率</div><div class="field-row"><input class="field-input" type="number" step="0.5" id="socGrowth" value="2"><span class="field-unit">%</span></div></div>
+      <div><div class="field-label">账户年利率</div><div class="field-row"><input class="field-input" type="number" step="0.5" id="accRate" value="2"><span class="field-unit">%</span></div></div>
+      <div><div class="field-label">测算累计年限 <span class="field-tip">逗号分隔</span></div><div class="field-row"><input class="field-input" type="text" id="totalYearsList" value="15,20,25,30,35"></div></div>
+    </div>
+  </div>
+
+  <!-- 派生信息 -->
+  <div class="info-bar" id="infoBar"></div>
+
+  <!-- 说明 -->
+  <div class="note-bar">
+    <strong class="c-accent">说明：</strong>
+    单位和灵活就业最低档 <strong class="c-text">养老金结果一致</strong>，差别仅在谁出统筹部分。
+    <strong class="c-green"> 绿色"合计"</strong> = 退休时名义金额 ·
+    <strong class="c-orange"> 橙色"折为现值"</strong> = 增长率0%，今天的购买力。
+    表格自动追加<strong class="c-accent">交到退休</strong>的行（⭐标记）。
+  </div>
+
+  <!-- 结果表格 -->
+  <div style="overflow-x:auto">
+    <table id="resultTable"></table>
+  </div>
+
+  <!-- 公式 -->
+  <div class="formula-section">
+    <div class="section-title">📐 计算公式</div>
+    <div><strong class="c-blue">基础养老金</strong> = 退休时计发基数 × (1 + 平均指数) ÷ 2 × 累计年限 × 1%</div>
+    <div><strong class="c-purple">账户养老金</strong> = 个人账户累计额 ÷ 计发月数（<span id="formulaMonths">117</span>）</div>
+    <div><strong class="c-cyan">平均指数</strong> = (旧年数×旧指数 + 新年数×新指数) ÷ 总年数</div>
+    <div><strong class="c-green">月养老金</strong> = 基础养老金 + 账户养老金</div>
+    <div style="margin-top:6px">
+      · 缴费基数 = 全省社平工资 × 缴费档次（≠退休地计发基数×档次）<br>
+      · 个人账户采用年初计息法：每年先计息再入账<br>
+      · 折为现值 = 所有增长率和利率设为0%
+    </div>
+  </div>
+
+  <div style="text-align:center">
+    <button class="btn-reset" onclick="resetDefaults()">恢复默认值</button>
+  </div>
+  <div class="footer">职工养老金测算工具 · 年初计息法 · 已与精算版交叉验证 · 仅供参考</div>
+</div>
+
+<script>
+// === 计发月数表 ===
+const MT = {40:233,45:216,50:195,55:170,60:139,65:101,70:56};
+function getMonths(age) {
+  if (MT[age]) return MT[age];
+  const ks = Object.keys(MT).map(Number).sort((a,b)=>a-b);
+  if (age <= ks[0]) return MT[ks[0]];
+  if (age >= ks[ks.length-1]) return MT[ks[ks.length-1]];
+  for (let i=0;i<ks.length-1;i++) {
+    if (age>=ks[i]&&age<=ks[i+1]) {
+      const r=(age-ks[i])/(ks[i+1]-ks[i]);
+      return Math.round(MT[ks[i]]*(1-r)+MT[ks[i+1]]*r);
+    }
+  }
+  return 139;
+}
+
+const cg = (b,y,r) => b*Math.pow(1+r,y);
+const fmt = n => n.toLocaleString();
+
+// === 年初计息法（匹配精算版） ===
+function calcW(p, totalTarget, sc) {
+  const fy = Math.max(0, totalTarget - p.pastYears);
+  const tY = p.pastYears + fy;
+  const ytr = p.retireYear - p.currentYear;
+  const ms = getMonths(p.retireAge);
+  let acc = p.existAccount;
+  for (let y=0;y<ytr;y++) {
+    acc *= (1+sc.accR);
+    if (y<fy) { acc += p.futureBase*Math.pow(1+sc.socG,y)*0.08*12; }
+  }
+  const accP = acc/ms;
+  const jifa = cg(p.jifaBase,ytr,sc.socG);
+  const idx = tY>0 ? (p.pastYears*p.pastIndex+fy*p.futureIndex)/tY : p.futureIndex;
+  const baseP = jifa*(1+idx)/2*tY*0.01;
+  return {
+    tY:tY.toFixed(1), fy:fy.toFixed(1), idx:idx.toFixed(4),
+    accP:Math.round(accP), baseP:Math.round(baseP),
+    tot:Math.round(accP+baseP), totAcc:Math.round(acc), ms
+  };
+}
+
+// === 读取参数 ===
+function getParams() {
+  const v = id => {
+    const el = document.getElementById(id);
+    if (el.type==='text') return el.value;
+    const n = parseFloat(el.value);
+    return isNaN(n)?0:n;
+  };
+  const socAvg=v('socAvg'), futureIndex=v('futureIndex');
+  const birthYear=v('birthYear'), retireAge=v('retireAge');
+  return {
+    birthYear, retireAge, retireYear:birthYear+retireAge,
+    currentYear:v('currentYear'),
+    pastYears:v('pastYears'), pastIndex:v('pastIndex'),
+    existAccount:v('existAccount'),
+    socAvg, futureIndex,
+    futureBase:Math.round(socAvg*futureIndex),
+    jifaBase:v('jifaBase'),
+    socGrowth:v('socGrowth')/100,
+    accRate:v('accRate')/100,
+    totalYearsList:document.getElementById('totalYearsList').value,
+  };
+}
+
+// === 渲染 ===
+function render() {
+  const p = getParams();
+  const ytr = p.retireYear - p.currentYear;
+  const maxTY = parseFloat((p.pastYears+ytr).toFixed(1));
+  const months = getMonths(p.retireAge);
+  const flexM = Math.round(p.futureBase*0.2);
+  const scN = {socG:p.socGrowth, accR:p.accRate};
+  const sc0 = {socG:0, accR:0};
+
+  // 派生显示
+  document.getElementById('derivedBase').innerHTML =
+    `¥${fmt(p.futureBase)}/月 <span class="derived-sub">= ${fmt(p.socAvg)} × ${p.futureIndex}</span>`;
+  document.getElementById('derivedFlex').innerHTML =
+    `¥${fmt(flexM)}/月 <span class="derived-sub">= ${fmt(p.futureBase)} × 20%</span>`;
+  document.getElementById('infoBar').innerHTML =
+    `<span>退休: <strong style="color:var(--text)">${p.retireYear}年</strong>（距今${ytr}年）</span>`+
+    `<span>计发月数(${p.retireAge}岁): <strong style="color:var(--text)">${months}个月</strong></span>`+
+    `<span>到退休最大累计: <strong style="color:var(--accent)">${maxTY}年</strong>（旧${p.pastYears}+新${ytr}）</span>`+
+    `<span>单位个人月缴: <strong style="color:var(--blue)">¥${fmt(Math.round(p.futureBase*0.08))}</strong></span>`;
+  document.getElementById('formulaMonths').textContent = months;
+
+  // 年限列表
+  let list;
+  try {
+    list = p.totalYearsList.split(',').map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)&&n>0);
+  } catch(e) { list=[15,20,25,30,35]; }
+  if (maxTY>0 && !list.some(n=>Math.abs(n-maxTY)<0.01)) list.push(maxTY);
+  list.sort((a,b)=>a-b);
+
+  // 表格
+  let html = `<thead><tr>
+    <th style="text-align:left">累计年限</th>
+    <th>灵活就业月缴</th>
+    <th>平均指数</th>
+    <th>基础养老金</th>
+    <th>账户养老金</th>
+    <th class="th-green">合计/月</th>
+    <th class="th-orange">折为现值</th>
+  </tr></thead><tbody>`;
+
+  list.forEach((tY,i) => {
+    const d = calcW(p, tY, scN);
+    const d0 = calcW(p, tY, sc0);
+    const isMax = Math.abs(tY-maxTY)<0.01;
+    const cls = isMax?'row-max':(i%2===0?'row-even':'row-odd');
+    const fy = parseFloat(d.fy);
+
+    html += `<tr class="${cls}">
+      <td style="font-weight:700;color:${isMax?'var(--accent)':'var(--text)'}">
+        ${isMax?'⭐ ':''}${d.tY}年
+        <div class="td-sub">旧${p.pastYears} + 新${fy.toFixed(1)}年</div>
+      </td>
+      <td style="color:var(--purple);font-weight:600">
+        ¥${fmt(flexM)}
+        <div class="td-sub">年¥${fmt(flexM*12)}</div>
+      </td>
+      <td style="color:var(--cyan);font-weight:600">${d.idx}</td>
+      <td style="color:var(--blue);font-weight:600">¥${fmt(d.baseP)}</td>
+      <td style="color:var(--purple);font-weight:600">
+        ¥${fmt(d.accP)}
+        <div class="td-sub">账户¥${fmt(d.totAcc)}</div>
+      </td>
+      <td style="font-weight:700;font-size:16px;color:var(--green)">¥${fmt(d.tot)}</td>
+      <td class="td-orange" style="font-weight:700;font-size:16px;color:var(--orange)">¥${fmt(d0.tot)}</td>
+    </tr>`;
+  });
+
+  html += '</tbody>';
+  document.getElementById('resultTable').innerHTML = html;
+}
+
+// === 默认值 ===
+function resetDefaults() {
+  const d = {birthYear:1993,retireAge:63,currentYear:2026,pastYears:9.7,pastIndex:2.17,
+    existAccount:147000,socAvg:7264,futureIndex:0.6,jifaBase:8390,socGrowth:2,accRate:2,
+    totalYearsList:'15,20,25,30,35'};
+  Object.keys(d).forEach(k => { document.getElementById(k).value = d[k]; });
+  render();
+}
+
+// === 绑定事件 ===
+document.querySelectorAll('.field-input').forEach(el => {
+  el.addEventListener('input', render);
+});
+
+// 初始渲染
+render();
+</script>
+</body>
+</html>
